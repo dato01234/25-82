@@ -1,0 +1,252 @@
+﻿@{
+    ViewData["Title"] = "survey";
+}
+
+
+
+
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survey Builder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            max-width: 800px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .form-container {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .question-container {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+            .question-container input, .question-container select {
+                flex: 1;
+                padding: 10px;
+                font-size: 16px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+            }
+
+        .answer-container {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .answer-input {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+
+        .small-btn {
+            font-size: 12px;
+            padding: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .remove-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+            .remove-btn:hover {
+                background-color: #c0392b;
+            }
+
+        .add-btn {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+            .add-btn:hover {
+                background-color: #27ae60;
+            }
+
+        .submit-btn {
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+            .submit-btn:hover {
+                background-color: #005bb5;
+            }
+
+        .saved-container {
+            margin-top: 30px;
+            padding: 15px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+        }
+
+            .saved-container h3 {
+                text-align: center;
+                margin-bottom: 15px;
+                font-size: 20px;
+            }
+    </style>
+</head>
+<body>
+
+    <h1>Survey Builder</h1>
+
+    <div class="form-container">
+        <label for="surveyTitle">Survey Title:</label>
+        <input type="text" id="surveyTitle" placeholder="Enter survey title">
+
+        <div id="questionsContainer"></div>
+
+        <button class="submit-btn" onclick="saveSurvey()">Submit Survey</button>
+    </div>
+
+    <div id="savedSurveys"></div>
+
+    <script>
+        function createQuestion() {
+            const container = document.getElementById("questionsContainer");
+
+            const questionDiv = document.createElement("div");
+            questionDiv.classList.add("question-container");
+
+            questionDiv.innerHTML = `
+                        <input type="text" placeholder="Enter your question">
+                        <select onchange="updateAnswerType(this)">
+                            <option value="multiple-choice">Multiple Choice</option>
+                            <option value="dropdown">Dropdown</option>
+                            <option value="ranking">Ranking</option>
+                            <option value="date-time">Date/Time</option>
+                            <option value="file-upload">File Upload</option>
+                            <option value="textbox">Single Textbox</option>
+                            <option value="comment-box">Comment Box</option>
+                            <option value="checkboxes">Checkboxes</option>
+                            <option value="best-worst">Best/Worst Scale</option>
+                        </select>
+                        <div class="answer-container"></div>
+                    `;
+
+            container.appendChild(questionDiv);
+            updateAnswerType(questionDiv.querySelector("select"));
+        }
+
+        function updateAnswerType(selectElement) {
+            const answerContainer = selectElement.parentElement.querySelector(".answer-container");
+            answerContainer.innerHTML = ""; // Clear previous answers
+
+            const type = selectElement.value;
+
+            if (["multiple-choice", "dropdown", "checkboxes"].includes(type)) {
+                for (let i = 0; i < 3; i++) {
+                    addAnswer(answerContainer);
+                }
+
+                // Add "Add Answer" button
+                const addBtn = document.createElement("button");
+                addBtn.classList.add("small-btn", "add-btn");
+                addBtn.textContent = "Add Answer";
+                addBtn.onclick = () => addAnswer(answerContainer);
+                answerContainer.appendChild(addBtn);
+            }
+            else {
+                let inputType = "text";
+                if (type === "ranking") inputType = "number";
+                else if (type === "date-time") inputType = "datetime-local";
+                else if (type === "file-upload") inputType = "file";
+
+                addAnswer(answerContainer, inputType);
+            }
+        }
+
+        function addAnswer(answerContainer, inputType = "text") {
+            const answerDiv = document.createElement("div");
+            answerDiv.classList.add("answer-input");
+
+            answerDiv.innerHTML = `
+                        <input type="${inputType}" placeholder="Enter answer option" style="flex: 1;">
+                        <button class="small-btn remove-btn" onclick="removeAnswer(this)">Remove</button>
+                    `;
+
+            answerContainer.insertBefore(answerDiv, answerContainer.lastElementChild);
+        }
+
+        function removeAnswer(button) {
+            button.parentElement.remove();
+        }
+
+        function saveSurvey() {
+            const surveyTitle = document.getElementById("surveyTitle").value;
+            const questions = document.querySelectorAll(".question-container");
+
+            if (!surveyTitle.trim()) {
+                alert("Please enter a survey title.");
+                return;
+            }
+
+            let surveyData = `<div class="saved-container"><h3>${surveyTitle}</h3>`;
+
+            questions.forEach((question, index) => {
+                const questionText = question.querySelector("input[type='text']").value;
+                const questionType = question.querySelector("select").value;
+                const answers = Array.from(question.querySelectorAll(".answer-container input")).map(input => input.value);
+
+                if (!questionText.trim()) {
+                    alert(`Please enter text for question ${index + 1}.`);
+                    return;
+                }
+
+                surveyData += `<p><strong>${index + 1}. ${questionText}</strong></p>`;
+
+                if (answers.length > 0) {
+                    surveyData += `<select>`;
+                    answers.forEach(answer => {
+                        surveyData += `<option>${answer}</option>`;
+                    });
+                    surveyData += `</select>`;
+                }
+            });
+
+            surveyData += "</div>";
+            document.getElementById("savedSurveys").innerHTML += surveyData;
+        }
+
+        createQuestion();
+    </script>
+
+</body>
+</html>
+
